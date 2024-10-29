@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  fastapi:
+    build: .
+    volumes:
+      - ./chessmatch_api:/chessmatch
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "python3 main.py"
+    environment:
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=chessmatch
+      - DB_HOST=pgdb
+      - DB_PORT=5432
+    
+    depends_on:
+      - pgdb
+
+  pgdb:
+    image: postgres
+    environment:
+      - POSTGRES_DB=chessmatch
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
