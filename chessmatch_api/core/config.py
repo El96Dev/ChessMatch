@@ -13,6 +13,10 @@ class ApiPrefix(BaseModel):
     prefix_v1: str = "/api/v1"
 
 
+class AccessToken(BaseModel):
+    lifetime_seconds: int = 3600
+
+
 class DatabaseConfig(BaseModel):
     user: str = os.getenv('DB_USER')
     password: str = os.getenv('DB_PASSWORD')
@@ -23,14 +27,16 @@ class DatabaseConfig(BaseModel):
 
     @property
     def url(self):
-        return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
-                self.host + ":" + self.port + "/" + self.db
+        return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
+        # return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
+        #         self.host + ":" + self.port + "/" + self.db
 
 
 class Settings(BaseSettings):
     run: RunConfig = RunConfig()
     api: ApiPrefix = ApiPrefix()
     db: DatabaseConfig = DatabaseConfig()
+    access_token: AccessToken = AccessToken()
 
 
 settings = Settings()
