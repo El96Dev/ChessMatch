@@ -15,6 +15,8 @@ class ApiPrefix(BaseModel):
 
 class AccessToken(BaseModel):
     lifetime_seconds: int = 3600
+    reset_password_token_secret: str = os.getenv("RESET_PASSWORD_TOKEN")
+    verification_token_secret: str = os.getenv("VERIFICATION_TOKEN_SECRET")
 
 
 class DatabaseConfig(BaseModel):
