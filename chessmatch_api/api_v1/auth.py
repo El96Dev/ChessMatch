@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 
 from .fastapi_users_object import fastapi_users_obj
+from core.config import settings
 from api_v1.dependencies.authentication.backend import auth_backend
 
 
 router = APIRouter(
-    prefix="/auth",
+    prefix=settings.api.v1.auth,
     tags=["Auth"]
 )
 
