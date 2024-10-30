@@ -9,6 +9,8 @@ if TYPE_CHECKING:
 
 
 class User(Base, SQLAlchemyBaseUserTable[int]):
+    __tablename__ = "users"
+
     username: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     elo_rating: Mapped[int] = mapped_column(default=0) 
     avatar_filename: Mapped[str] = mapped_column(default="default.jpg")
