@@ -9,10 +9,17 @@ class RunConfig(BaseModel):
     port: int = 8000
 
 
+class MatchmakingConfig(BaseModel):
+    elo_step: int = 100
+    step_seconds_interval: int = 20
+    max_elo_diff: int = 500
+
+
 class ApiV1Prefix(BaseModel):
     prefix: str= "/v1"
     auth: str = "/auth"
     users: str = "/users"
+    games: str = "/games"
 
 
 class ApiPrefix(BaseModel):
@@ -42,8 +49,9 @@ class DatabaseConfig(BaseModel):
 
     @property
     def url(self):
-        return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
-                self.host + ":" + self.port + "/" + self.db
+        return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
+        # return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
+        #         self.host + ":" + self.port + "/" + self.db
 
 
 class Settings(BaseSettings):
@@ -51,6 +59,7 @@ class Settings(BaseSettings):
     api: ApiPrefix = ApiPrefix()
     db: DatabaseConfig = DatabaseConfig()
     access_token: AccessToken = AccessToken()
+    matchmaking: MatchmakingConfig = MatchmakingConfig()
 
 
 settings = Settings()

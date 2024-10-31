@@ -8,6 +8,6 @@ from core.config import settings
 
 http_bearer = HTTPBearer(auto_error=False)
 
-router = APIRouter(prefix=settings.api.v1.prefix, dependencies=Depends(http_bearer))
+router = APIRouter(prefix=settings.api.v1.prefix, dependencies=[Depends(http_bearer)])
 router.include_router(auth_router)
 router.include_router(users_router)
