@@ -40,6 +40,11 @@ class AccessToken(BaseModel):
     verification_token_secret: str = os.getenv("VERIFICATION_TOKEN_SECRET")
 
 
+class CeleryConfig(BaseModel):
+    broker_url: str = os.getenv("CELERY_BROKER_URL")
+    backend_url: str = os.getenv("CELERY_RESULT_BACKEND")
+
+
 class DatabaseConfig(BaseModel):
     user: str = os.getenv('DB_USER')
     password: str = os.getenv('DB_PASSWORD')
@@ -50,15 +55,16 @@ class DatabaseConfig(BaseModel):
 
     @property
     def url(self):
-        return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
-        # return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
-        #         self.host + ":" + self.port + "/" + self.db
+        # return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
+        return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
+                self.host + ":" + self.port + "/" + self.db
 
 
 class Settings(BaseSettings):
     run: RunConfig = RunConfig()
     api: ApiPrefix = ApiPrefix()
     db: DatabaseConfig = DatabaseConfig()
+    celery: CeleryConfig = CeleryConfig()
     access_token: AccessToken = AccessToken()
     matchmaking: MatchmakingConfig = MatchmakingConfig()
 
