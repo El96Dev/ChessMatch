@@ -26,6 +26,7 @@ services:
       - POSTGRES_DB=chessmatch
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+      - POSTRES_PORT=5432
     volumes:
       - pgdata:/var/lib/postgresql/data
 

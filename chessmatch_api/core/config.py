@@ -10,6 +10,7 @@ class RunConfig(BaseModel):
 
 
 class MatchmakingConfig(BaseModel):
+    initial_elo_difference: int = 100
     elo_step: int = 100
     step_seconds_interval: int = 20
     max_elo_diff: int = 500

@@ -1,9 +1,9 @@
+from fastapi import WebSocket
 from typing import TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 
-if TYPE_CHECKING:
-    from core.models import User
+from core.models import User
 
 
 class Preferences(Enum):
@@ -14,11 +14,14 @@ class Preferences(Enum):
 
 class Player():
     user: User
+    websocket: WebSocket
     last_elo_increment: datetime
     preferences: Preferences
     elo_difference: int
 
-    def __init__(self, user: User, preferences: str, elo_difference: int) -> None:
+
+    def __init__(self, websocket: WebSocket, user: User, preferences: str, elo_difference: int) -> None:
+        self.websocket = websocket
         self.user = user
         self.last_elo_increment = datetime.now()
         self.preferences = preferences
