@@ -29,6 +29,14 @@ class Player():
         self.elo_difference = elo_difference
 
 
+    async def get_json_message(self) -> json:
+        return await self.websocket.receive_json()
+
+
+    async def send_json_message(self, message: json):
+        await self.websocket.send_json(message)
+
+
     def is_connected(self) -> bool:
         return self.websocket.client_state == WebSocketState.CONNECTED
 
