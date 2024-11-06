@@ -56,6 +56,7 @@ class DatabaseConfig(BaseModel):
     @property
     def url(self):
         # return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
+        # return "postgresql+asyncpg://postgres:postgres@localhost:5432/chessmatch"
         return "postgresql+asyncpg://" + self.user + ":" + self.password + "@" + \
                 self.host + ":" + self.port + "/" + self.db
 

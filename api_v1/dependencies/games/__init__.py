@@ -2,9 +2,9 @@ __all__ = (
     "Game", 
     "Player",
     "Preferences",
-    "ThreadSafeDeque"
+    "ThreadSafeList"
 )
 
 from .game import Game
 from .player import Player, Preferences
-from .deque import ThreadSafeDeque
+from .list import ThreadSafeList

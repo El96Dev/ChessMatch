@@ -4,7 +4,7 @@ services:
   fastapi:
     build: .
     volumes:
-      - ./chessmatch_api:/chessmatch
+      - .:/chessmatch
     ports:
       - "8000:8000"
     command: >
@@ -16,8 +16,8 @@ services:
       - DB_NAME=chessmatch
       - DB_HOST=pgdb
       - DB_PORT=5432
-      - CELERY_BROKER_URL=redis://localhost:6379/0
-      - CELERY_RESULT_BACKEND=redis://localhost:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
       pgdb:
         condition: service_healthy
@@ -34,45 +34,10 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d chessmatch"]
-      interval: 10s
-      timeout: 5s
+      interval: 2s
+      timeout: 2s
       retries: 5
-
-
-  redis:
-    image: redis:latest
-    ports:
-      - "6389:6379"
-
-  celery_worker:
-    build: .
-    command: celery --app=celery worker -l INFO
-    # command: celery --broker=redis://redis:6379/0 flower --port=5555 
-    environment:
-      - REDIS_HOST=redis
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    healthcheck:
-      test: ["CMD", "celery", "-A", "celery", "status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      - redis
-      - fastapi
-
-  flower:
-    build: .
-    command: celery --broker=redis://redis:6379/0 flower --port=5555
-    ports:
-      - 5555:5555
-    environment:
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-    depends_on:
-      celery_worker:
-        condition: service_healthy
-
+      
 
 volumes:
   pgdata:
