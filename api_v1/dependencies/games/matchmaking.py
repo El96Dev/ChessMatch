@@ -17,20 +17,24 @@ async def find_matches():
     try:
         print("Find matches call")
         with lock:
-            matched_players = []
+            players_to_remove = []
             if len(players) >= 2:
                 for i in range(len(players)):
-                    if players[i] in matched_players:
+                    if not players[i].is_connected():
+                        players_to_remove.append(players[i])
+                    if players[i] in players_to_remove:
                         continue
                     for j in range(i+1, len(players)):
-                        if players[j] in matched_players:
+                        if not players[j].is_connected():
+                            players_to_remove.append(players[j])
+                        if players[j] in players_to_remove:
                             continue
                         if players[i].check_for_match(players[j]):
-                            matched_players.append(players[i])
-                            matched_players.append(players[j])
+                            players_to_remove.append(players[i])
+                            players_to_remove.append(players[j])
                             game = Game(players[i], players[j])
                             games.append(game)
-                for player in matched_players:
+                for player in players_to_remove:
                     players.remove(player)
         print("Find matches ended!")
 

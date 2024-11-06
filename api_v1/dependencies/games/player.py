@@ -1,4 +1,5 @@
 from fastapi import WebSocket
+from fastapi.websockets import WebSocketState
 from typing import TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
@@ -26,6 +27,10 @@ class Player():
         self.last_elo_increment = datetime.now()
         self.preferences = preferences
         self.elo_difference = elo_difference
+
+
+    def is_connected(self) -> bool:
+        return self.websocket.client_state == WebSocketState.CONNECTED
 
 
     def update_elo_difference(self, elo_step: int, max_elo_diff: int, step_seconds_interval: int):
