@@ -4,13 +4,8 @@ from datetime import datetime
 from chess import Board, Move
 from fastapi import HTTPException, status
 
+from core.models.game import GameResult
 from .player import Player, Preferences
-
-
-class Winner(Enum):
-    WHITE = "white"
-    BLACK = "black"
-    DRAW = "draw"
 
 
 class Game:
@@ -46,17 +41,19 @@ class Game:
                                        "player_color": "black",
                                        "opponent": {"username": self.white_player.user.username, 
                                                     "rating": self.white_player.user.elo_rating}})   
+        self.white_player.send_json_message(message_to_white)
+        self.black_player.send_json_message(message_to_black)
         self.current_player = self.white_player
 
 
-    def change_current_player():
+    def change_current_player(self):
         if self.current_player == self.white_player:
             self.current_player = self.black_player
         else:
             self.current_player = self.white_player
 
 
-    async def game_loop():
+    async def game_loop(self):
         while self.board.is_checkmate:
             json_message = await self.current_player.get_json_message()
             await self.process_message(json_message)                                                                                       
@@ -87,7 +84,7 @@ class Game:
                 if not self.draw_offered:
                     self.draw_offered = True
                 else:
-                    current_player.send_json_message({"action": "message_error", "detail": "Draw has already been offered"})
+                    self.current_player.send_json_message({"action": "message_error", "detail": "Draw has already been offered"})
             elif action == "accept_draw":
                 if self.draw_offered:
                    pass 
@@ -110,4 +107,4 @@ class Game:
 
     def set_draw(self):
         self.ended_at = datetime.now()
-        self.winner = Winner.DRAW
+        self.game_result = GameResult.DRAW

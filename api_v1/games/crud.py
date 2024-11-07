@@ -1,10 +1,10 @@
-import select
+import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 
 from .dependencies import check_if_game_exists
-from core.game import GameResult
+from api_v1.dependencies.games.game import GameResult
 from core.models import User, Game, Move, db_helper, AccessToken
 
 
