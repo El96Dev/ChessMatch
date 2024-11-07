@@ -18,7 +18,7 @@ class Game:
     black_player: Player
     current_player: Player
     board: Board
-    bool: draw_offered
+    draw_offered: bool = False
     started_at: datetime
     ended_at: datetime
 
@@ -49,6 +49,13 @@ class Game:
         self.current_player = self.white_player
 
 
+    def change_current_player():
+        if self.current_player == self.white_player:
+            self.current_player = self.black_player
+        else:
+            self.current_player = self.white_player
+
+
     async def game_loop():
         while self.board.is_checkmate:
             json_message = await self.current_player.get_json_message()
@@ -56,18 +63,36 @@ class Game:
 
 
     async def process_message(self, json_message: json):
-        data = json.loads(json_message)
-        action = data["action"]
-        if action == "move":
-            move = data["move"]
-            # self.board.is_legal()
-        elif action == "offer_draw":
-            pass
-        elif action == "accept_draw":
-            pass
-        elif action == "resign":
-            pass
+        try:
+            data = json.loads(json_message)
+        except json.JSONDecodeError as e:   
+            self.current_player.send_json_message({"action": "json_error", "detail": e})
 
+        if "action" not in data:
+            self.current_player.send_json_message({"action": "message_error", "detail": "Action field required"})
+        else:
+            action = data["action"]
+            if action == "move":
+                if "move" not in data:
+                    self.current_player.send_json_message({"action": "message_error", "detail": "Move field required"})
+                else:
+                    move_str = data["move"]
+                    move = Move(move_str)
+                    if self.board.is_valid(move):
+                        self.board.push(move)
+                        self.change_current_player()
+                    else:
+                        self.current_player.send_json_message({"action": "move_error", "detail": "Illegal move"})
+            elif action == "offer_draw":
+                if not self.draw_offered:
+                    self.draw_offered = True
+                else:
+                    current_player.send_json_message({"action": "message_error", "detail": "Draw has already been offered"})
+            elif action == "accept_draw":
+                if self.draw_offered:
+                   pass 
+            elif action == "resign":
+                pass
 
 
     async def send_message_to_all(self, message: json):
