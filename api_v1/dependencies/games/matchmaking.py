@@ -1,10 +1,13 @@
 import asyncio
+from datetime import datetime
+from fastapi import Depends
 from threading import Lock
 
 from core.config import settings
-from .list import ThreadSafeList
+from api_v1.games import crud
+from core.models import db_helper
 from .game import Game
-from .player import Player
+from .player import Preferences, Player
 
 
 lock = Lock()
@@ -32,7 +35,17 @@ async def find_matches():
                         if players[i].check_for_match(players[j]):
                             players_to_remove.append(players[i])
                             players_to_remove.append(players[j])
-                            game = Game(players[i], players[j])
+                            current_datetime = datetime.now()
+                            if (players[i].preferences == Preferences.WHITE or players[j].preferences == Preferences.BLACK or 
+                               (players[i].preferences == Preferences.ANY and players[j].preferences == Preferences.ANY)):
+                                white_player = players[i]
+                                black_player = players[j]
+                            elif players[i].preferences == Preferences.BLACK or players[j].preferences == Preferences.WHITE:
+                                white_player = players[j]
+                                black_player = players[i]
+                            game_orm = await crud.create_game(white_player_id=white_player.user.id, black_player_id=black_player.user.id,
+                                                              started_at=current_datetime, session=Depends(db_helper.scoped_session_dependency))
+                            game = Game(game_orm.id, white_player, black_player, current_datetime)
                             games.append(game)
                 for player in players_to_remove:
                     players.remove(player)

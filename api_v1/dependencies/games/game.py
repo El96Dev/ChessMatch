@@ -2,36 +2,33 @@ import json
 from enum import Enum
 from datetime import datetime
 from chess import Board, Move
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 
+from api_v1.games import crud
 from core.models.game import GameResult
+from core.models import db_helper
 from .player import Player, Preferences
 
 
 class Game:
+    game_id: int
     white_player: Player
     black_player: Player
     current_player: Player
     board: Board
     draw_offered: bool = False
+    sequence_number: int = 1
     started_at: datetime
     ended_at: datetime
 
 
-    def __init__(self, first_player: Player, second_player: Player):
+    async def __init__(self, game_id: int, white_player: Player, black_player: Player, current_datetime: datetime):
+        self.game_id = game_id
+        self.white_player = white_player
+        self.black_player = black_player
         self.board = Board()
         self.draw_offered = False
-        self.started_at = datetime.now()
-
-        if first_player.preferences == Preferences.WHITE or second_player.preferences == Preferences.BLACK:
-            self.white_player = first_player
-            self.black_player = second_player
-        elif first_player.preferences == Preferences.BLACK or second_player.preferences == Preferences.WHITE:
-            self.white_player = second_player
-            self.black_player = first_player
-        elif first_player.preferences == Preferences.ANY and second_player.preferences == Preferences.ANY:
-            self.white_player = first_player
-            self.black_player = second_player
+        self.started_at = current_datetime
 
         message_to_white = json.dumps({"action": "start_game", 
                                        "player_color": "white",
@@ -54,7 +51,7 @@ class Game:
 
 
     async def game_loop(self):
-        while self.board.is_checkmate:
+        while not self.board.is_game_over:
             json_message = await self.current_player.get_json_message()
             await self.process_message(json_message)                                                                                       
 
@@ -77,6 +74,9 @@ class Game:
                     move = Move(move_str)
                     if self.board.is_valid(move):
                         self.board.push(move)
+                        await crud.add_move(self.game_id, move_str, self.sequence_number, 
+                                            session=Depends(db_helper.scoped_session_dependency))
+                        self.sequence_number += 1
                         self.change_current_player()
                     else:
                         self.current_player.send_json_message({"action": "move_error", "detail": "Illegal move"})
@@ -87,7 +87,8 @@ class Game:
                     self.current_player.send_json_message({"action": "message_error", "detail": "Draw has already been offered"})
             elif action == "accept_draw":
                 if self.draw_offered:
-                   pass 
+                   self.game_result = GameResult.DRAW
+                   self.ended_at = datetime.now()
             elif action == "resign":
                 pass
 
