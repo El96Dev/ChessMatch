@@ -87,8 +87,9 @@ class Game:
                     self.current_player.send_json_message({"action": "message_error", "detail": "Draw has already been offered"})
             elif action == "accept_draw":
                 if self.draw_offered:
-                   self.game_result = GameResult.DRAW
-                   self.ended_at = datetime.now()
+                    self.on_draw()
+                else:
+                    self.current_player.send_json_message({"action": "message_error", "detail": "Draw hasn't been offered"})
             elif action == "resign":
                 pass
 
@@ -106,6 +107,64 @@ class Game:
         return self.board.is_checkmate()
 
 
-    def set_draw(self):
+    def on_draw(self):
         self.ended_at = datetime.now()
         self.game_result = GameResult.DRAW
+        await self.update_elo_rating()
+        await crud.set_game_results(self.game_id, self.ended_at, self.game_result, session = Depends(db_helper.scoped_session_dependency))
+        self.send_game_over_messages()
+
+
+    def on_resign(self):
+        self.ended_at = datetime.now()
+        if self.current_player == self.white_player:
+            self.game_result = GameResult.BLACK
+        elif self.current_player == self.black_player:
+            self.game_result = GameResult.WHITE
+        await self.update_elo_rating()
+        await crud.set_game_results(self.game_id, self.ended_at, self.game_result, session = Depends(db_helper.scoped_session_dependency))
+        self.send_game_over_messages()
+        
+
+    async def update_elo_rating(self, session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+        white_expected = 1//(1 + 10**((self.black_player.user.elo_rating-self.white_player.user.elo_rating)//400))
+        black_expected = 1//(1 + 10**((self.white_player.user.elo_rating-self.black_player.user.elo_rating)//400))
+        if self.white_player.user.elo_rating >= 2400:
+            white_k = 10
+        elif self.white_player.total_games_played > 30:
+            white_k = 20
+        elif self.white_player.total_games_played <= 30:
+            white_k = 40
+
+        if self.black_player.user.elo_rating >= 2400:
+            black_k = 10
+        elif self.black_player.total_games_played > 30:
+            black_k = 20
+        elif self.black_player.total_games_played <= 30:
+            black_k = 40
+
+        if self.game_result == GameResult.WHITE:
+            new_white_elo = self.white_player.user.elo_rating + white_k*(1 - white_expected)
+            new_black_elo = self.black_player.user.elo_rating + black_k*(0 - black_expected)
+        elif self.game_result == GameResult.BLACK:
+            new_white_elo = self.white_player.user.elo_rating + white_k*(0 - white_expected)
+            new_black_elo = self.black_player.user.elo_rating + black_k*(1 - black_expected)
+        elif self.game_result == GameResult.DRAW:
+            new_white_elo = self.white_player.user.elo_rating + white_k*(0.5 - white_expected)
+            new_black_elo = self.black_player.user.elo_rating + black_k*(0.5 - black_expected)
+
+        self.white_player.user.elo_rating = new_white_elo
+        self.black_player.user.elo_rating = new_black_elo
+        await session.commit()
+
+    
+    def send_game_over_messages(self):
+        if self.game_result == GameResult.WHITE:
+            self.white_player.send_json_message({"action": "game_ended", "result": "White wins"})
+            self.black_player.send_json_message({"action": "game_ended", "result": "White wins"})
+        elif self.game_result == GameResult.BLACK:
+            self.white_player.send_json_message({"action": "game_ended", "result": "Black wins"})
+            self.white_player.send_json_message({"action": "game_ended", "result": "Black wins"})
+        elif self.game_result == GameResult.DRAW:
+            self.white_player.send_json_message({"action": "game_ended", "result": "Draw"})
+            self.white_player.send_json_message({"action": "game_ended", "result": "Draw"})
