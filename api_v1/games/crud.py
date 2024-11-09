@@ -1,5 +1,6 @@
 import datetime
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import aliased
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 
@@ -12,13 +13,23 @@ async def get_user_by_token(token: str, session: AsyncSession):
     id_stmt = select(AccessToken.user_id).where(AccessToken.token==token)
     id_result = await session.execute(id_stmt)
     user_id = id_result.scalars().one_or_none()
-    
-    user_stmt = select(User).where(User.id==user_id)
+
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User was not found!")
+
+    white_game_alias = aliased(Game)
+    black_game_alias = aliased(Game)
+    user_stmt = select(User, (func.count(white_game_alias.id).filter(white_game_alias.white_player_id == user_id) + \
+                func.count(black_game_alias.id).filter(black_game_alias.black_player_id == user_id)).label("total_games_played")).\
+                outerjoin(white_game_alias, User.id == white_game_alias.white_player_id). \
+                outerjoin(black_game_alias, User.id == black_game_alias.black_player_id).where(User.id==user_id).group_by(User.id)
     user_result = await session.execute(user_stmt)
-    user = user_result.scalars().one_or_none()
+    user, total_games_played = user_result.first()
+
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User was not found!")
     
+    user.total_games_played = total_games_played
     return user
 
 
