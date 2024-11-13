@@ -1,4 +1,5 @@
 import json
+import asyncio
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketState
 from typing import TYPE_CHECKING
@@ -17,17 +18,14 @@ class Preferences(Enum):
 class Player():
     user: User
     websocket: WebSocket
-    last_elo_increment: datetime
     preferences: Preferences
-    elo_difference: int
 
-
-    def __init__(self, websocket: WebSocket, user: User, preferences: str, elo_difference: int) -> None:
+    def __init__(self, websocket: WebSocket, user: User, preferences: str) -> None:
         self.websocket = websocket
         self.user = user
         self.last_elo_increment = datetime.now()
-        self.preferences = preferences
-        self.elo_difference = elo_difference
+        self.preferences = Preferences[preferences]
+
 
 
     async def get_json_message(self) -> json:
@@ -35,10 +33,12 @@ class Player():
 
 
     async def send_json_message(self, message: json):
+        print("Trying to send message to player")
         await self.websocket.send_json(message)
 
 
     def is_connected(self) -> bool:
+        print(self.websocket.client_state, self.websocket.state, "States!")
         return self.websocket.client_state == WebSocketState.CONNECTED
 
 
@@ -60,4 +60,3 @@ class Player():
             if self.elo_difference >= elo_diff and opponent.elo_difference >= elo_diff:
                 return True
         return False
-    

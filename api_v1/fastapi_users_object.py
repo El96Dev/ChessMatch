@@ -25,13 +25,12 @@ async def get_current_user_from_token(websocket: WebSocket,
                                       session: AsyncSession = Depends(db_helper.scoped_session_dependency)) -> User | None:
     headers = websocket.headers
     auth_token = headers.get("authorization")
-    
+
     if not auth_token:
         await websocket.close(code=1008, reason="Missing token")
         return None
     
     token = auth_token.split(" ")[1] if " " in auth_token else auth_token
-    # session = db_helper.scoped_session_dependency()
     try:
         user = await crud.get_user_by_token(token, session)
         return user

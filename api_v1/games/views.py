@@ -1,12 +1,15 @@
 import asyncio
-from fastapi import APIRouter, Depends
+import json
+from fastapi import APIRouter, Depends, WebSocketDisconnect
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import TYPE_CHECKING
 from fastapi import WebSocket
 
 from core.config import settings
-from api_v1.dependencies.games.matchmaking import players, games, find_matches
+from .gamemanager import game_manager
+from api_v1.dependencies.games.matchmaking import matchmaking_system
 from api_v1.fastapi_users_object import current_active_user, get_current_user_from_token
-from core.models import User
+from core.models import User, db_helper
 from api_v1.dependencies.games import Player, Preferences
 
 
@@ -20,18 +23,38 @@ async def example():
 
 
 @router.websocket("")
-async def websocket_function(websocket: WebSocket, user: User = Depends(get_current_user_from_token)):
-    await websocket.accept()
-    data = await websocket.receive_text()
-    print("User is ", user.email, user.id)
+async def websocket_function(websocket: WebSocket, 
+                             user: User = Depends(get_current_user_from_token), 
+                             session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
     try:
-        preferences = Preferences(data)
-    except:
-        websocket.close(1000)
-    print(preferences)
-    player = Player(websocket, user, preferences, settings.matchmaking.initial_elo_difference)
-    players.append(player)
-    print("wesocket func players len after append ", len(players))
-    find_matches_task = asyncio.create_task(find_matches())
-    await websocket.send_text(data)
+        await websocket.accept()
+        data = await websocket.receive_json()
+        if "action" not in data:
+            raise KeyError("'action' field is required")
+        if "preferences" not in data:
+            raise KeyError("'preferences' field is required")
+        if data["preferences"] not in ['WHITE', 'BLACK', 'ANY']:
+            print("Incorrect preferences value")
+            raise KeyError("'preferences' must be one of the following values: 'WHITE', 'BLACK', 'ANY'")
+        if data["action"] == "start_waiting":
+            player = Player(websocket, user, data["preferences"])
+            await matchmaking_system.add_player(player, session)
+
+        while True:
+            data = await websocket.receive_json()
+            print(json.dump(data), "user is ", user.username, user.email)
+            await game_manager.on_json_message(user.username, data, session)
+
+
+    except json.JSONDecodeError as e:
+        print("print json error", e.msg)
+        await websocket.send_json({"action": "json_error", "detail": e.msg})
+    except KeyError as k:   
+        print(k)
+        await websocket.send_json({"action": "message_error", "detail": str(k)})
+        await websocket.close()
+    except WebSocketDisconnect:
+        print(websocket.client_state, "client state disconnect")
+
+
 
