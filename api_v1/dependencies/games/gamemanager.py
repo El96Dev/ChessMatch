@@ -25,7 +25,8 @@ class GameManager:
             game_orm = await crud.create_game(white_player_id=white_player.user.id, black_player_id=black_player.user.id,
                                               started_at=current_datetime, session=session)
             game = Game(game_orm.id, white_player, black_player, current_datetime)
-            games[game.game_id] = game
+            self.games[game.game_id] = game
+            await self.games[game.game_id].send_game_start_messages()
 
 
     async def on_json_message(self, username: str, websocket: WebSocket, json_message: Dict, session: AsyncSession):
@@ -39,7 +40,7 @@ class GameManager:
         game_id = data["game_id"]
 
         if game_id in self.games:
-            if not games[game_id].is_game_member(username):
+            if not self.games[game_id].is_game_member(username):
                 await websocket.send_json({"action": "message_error", "detail": "You are not a game member"})
         else:
             await websocket.send_json({"action": "message_error", "detail": "Game wasn't found"})
@@ -57,11 +58,14 @@ class GameManager:
                 except ValueError:
                     websocket.send_json({"action": "move_error", "detail": "Incorrect move syntax"})
         elif action == "offer_draw":
-            await games[game_id].on_draw_offered(username, websocket, session)
+            await self.games[game_id].on_draw_offered(username, websocket, session)
         elif action == "accept_draw":
-            await games[game_id].on_draw_accepted(username, websocket, session)
+            await self.games[game_id].on_draw_accepted(username, websocket, session)
         elif action == "resign":
-            await games[game_id].on_resign(username, session)
+            await self.games[game_id].on_resign(username, session)
 
         if games[game_id].ended_at is not None:
             del games[game_id]
+
+
+game_manager = GameManager()

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from fastapi import WebSocket
 
 from core.config import settings
-from .gamemanager import game_manager
+from api_v1.dependencies.games.gamemanager import game_manager
 from api_v1.dependencies.games.matchmaking import matchmaking_system
 from api_v1.fastapi_users_object import current_active_user, get_current_user_from_token
 from core.models import User, db_helper
@@ -42,7 +42,7 @@ async def websocket_function(websocket: WebSocket,
 
         while True:
             data = await websocket.receive_json()
-            print(json.dump(data), "user is ", user.username, user.email)
+            print(data, "user is ", user.username, user.email)
             await game_manager.on_json_message(user.username, data, session)
 
 
