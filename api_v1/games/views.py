@@ -43,7 +43,7 @@ async def websocket_function(websocket: WebSocket,
         while True:
             data = await websocket.receive_json()
             print(data, "user is ", user.username, user.email)
-            await game_manager.on_json_message(user.username, data, session)
+            await game_manager.on_json_message(user.username, websocket, data, session)
 
 
     except json.JSONDecodeError as e:

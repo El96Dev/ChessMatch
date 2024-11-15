@@ -2,6 +2,7 @@ from typing import Dict
 from datetime import datetime
 from threading import RLock
 from fastapi import WebSocket
+from chess import Move
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .game import Game
@@ -29,7 +30,7 @@ class GameManager:
             await self.games[game.game_id].send_game_start_messages()
 
 
-    async def on_json_message(self, username: str, websocket: WebSocket, json_message: Dict, session: AsyncSession):
+    async def on_json_message(self, username: str, websocket: WebSocket, data: Dict, session: AsyncSession):
         if "action" not in data:
             await websocket.send_json({"action": "message_error", "detail": "'action' field is required"})
             return
@@ -37,24 +38,26 @@ class GameManager:
             await websocket.send_json({"action": "message_error", "detail": "'game_id' field is required"})
             return 
 
-        game_id = data["game_id"]
+        game_id = int(data["game_id"])
 
         if game_id in self.games:
             if not self.games[game_id].is_game_member(username):
                 await websocket.send_json({"action": "message_error", "detail": "You are not a game member"})
         else:
             await websocket.send_json({"action": "message_error", "detail": "Game wasn't found"})
+            return 
 
         action = data["action"]
 
         if action == "move":
             if "move" not in data:
                 websocket.send_json_message({"action": "message_error", "detail": "'move' field is required"})
+                return 
             else:
                 move_str = data["move"]
                 try:
-                    move = Move(move_str)
-                    games[game_id].on_move(move, username, websocket)
+                    move = Move.from_uci(move_str)
+                    await self.games[game_id].on_move(move, username, websocket)
                 except ValueError:
                     websocket.send_json({"action": "move_error", "detail": "Incorrect move syntax"})
         elif action == "offer_draw":
@@ -64,8 +67,8 @@ class GameManager:
         elif action == "resign":
             await self.games[game_id].on_resign(username, session)
 
-        if games[game_id].ended_at is not None:
-            del games[game_id]
+        if self.games[game_id].ended_at is not None:
+            del self.games[game_id]
 
 
 game_manager = GameManager()

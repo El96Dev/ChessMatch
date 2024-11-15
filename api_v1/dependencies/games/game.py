@@ -68,12 +68,18 @@ class Game:
 
 
     async def on_move(self, move: Move, username: str, websocket: WebSocket):
-        if self.draw_offered_by is not None:
+        if self.draw_offered_by is not None and self.draw_offered_by != username:
             await websocket.send_json({"action": "move_error", "detail": "Draw has been offered. Accept or refuse it first."})
-        if not self.board.is_legal(move):
+        elif (username == self.white_player.user.username and not self.board.turn) or \
+             (username == self.black_player.user.username and self.board.turn):
+            await websocket.send_json({"action": "move_error", "detail": "It's not your turn"}) 
+        elif not self.board.is_legal(move):
             await websocket.send_json({"action": "move_error", "detail": "Illegal move"})
         else:
             self.board.push(move)
+            await self.broadcast({"action": "move", "move": move.uci()})
+            if self.board.is_checkmate():
+                await self.on_checkmate()
 
 
     async def on_checkmate(self):
@@ -84,7 +90,7 @@ class Game:
             self.game_result = GameResult.WHITE
         await self.update_elo_rating()
         await crud.set_game_results(self.game_id, self.ended_at, self.game_result, session = Depends(db_helper.scoped_session_dependency))
-        self.send_game_over_messages()
+        await self.send_game_over_messages()
         
 
     async def on_draw(self, session: AsyncSession):
@@ -92,7 +98,7 @@ class Game:
         self.game_result = GameResult.DRAW
         await self.update_elo_rating()
         await crud.set_game_results(self.game_id, self.ended_at, self.game_result, session = Depends(db_helper.scoped_session_dependency))
-        self.send_game_over_messages()
+        await self.send_game_over_messages()
 
 
     async def on_draw_offered(self, username: str, websocket: WebSocket):
@@ -100,7 +106,7 @@ class Game:
             await websocket.send_json({"action": "draw_offered_error", "detail": "Draw has been offered. Accept or refuse it first."})
         else:
             self.draw_offered_by = username
-            self.broadcast({"action": "draw_offered", "username": username})
+            await self.broadcast({"action": "draw_offered", "username": username})
 
     
     async def on_draw_accepted(self, username: str, websocket: WebSocket, session: AsyncSession):
