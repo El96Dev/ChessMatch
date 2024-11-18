@@ -21,6 +21,7 @@ class ApiV1Prefix(BaseModel):
     auth: str = "/auth"
     users: str = "/users"
     games: str = "/games"
+    profile: str = "/profile"
 
 
 class ApiPrefix(BaseModel):
@@ -43,6 +44,10 @@ class AccessToken(BaseModel):
 class CeleryConfig(BaseModel):
     broker_url: str = os.getenv("CELERY_BROKER_URL")
     backend_url: str = os.getenv("CELERY_RESULT_BACKEND")
+
+
+class ImagesConfig(BaseModel):
+    kb_image_limit: int = 150
 
 
 class DatabaseConfig(BaseModel):
@@ -68,6 +73,7 @@ class Settings(BaseSettings):
     celery: CeleryConfig = CeleryConfig()
     access_token: AccessToken = AccessToken()
     matchmaking: MatchmakingConfig = MatchmakingConfig()
+    images: ImagesConfig = ImagesConfig()
 
 
 settings = Settings()
