@@ -1,6 +1,6 @@
 import datetime
-from sqlalchemy import select, func
-from sqlalchemy.orm import aliased
+from sqlalchemy import select, func, or_
+from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 
@@ -60,3 +60,10 @@ async def set_game_results(game_id: int, ended_at: datetime, game_result: GameRe
         await session.commit()
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Game with id {game_id} was not found!")
+
+
+async def get_user_games(user: User, session: AsyncSession):
+    stmt = select(Game).where(or_(Game.white_player_id == user.id, Game.black_player_id == user.id)).options(joinedload(Game.moves))
+    result = await session.execute(stmt)
+    games = result.scalars().all()
+    return games

@@ -11,15 +11,16 @@ from api_v1.dependencies.games.matchmaking import matchmaking_system
 from api_v1.fastapi_users_object import current_active_user, get_current_user_from_token
 from core.models import User, db_helper
 from api_v1.dependencies.games import Player, Preferences
+from . import crud
 
 
-router = APIRouter(prefix=settings.api.v1.games)
+router = APIRouter(prefix=settings.api.v1.games, tags=["Games"])
 
 
 @router.get("")
-async def example():
-    pass
-
+async def get_user_games(user: User = Depends(current_active_user), session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+    games = await crud.get_user_games(user, session)
+    return games
 
 
 @router.websocket("")
