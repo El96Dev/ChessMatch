@@ -12,21 +12,6 @@ from . import crud
 
 router = APIRouter(prefix=settings.api.v1.profile, tags=["Profile"])
 
-@router.get("/{user_id}")
-async def get_user_profile(user_id: int,
-                           user: User = Depends(current_active_user), 
-                           session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
-    user_data = await crud.get_profile_data_by_id(user_id, session)
-    return user_data
-
-
-@router.get("/{user_id}/avatar")
-async def get_user_avatar(user_id: int, 
-                          user: User = Depends(current_active_user),
-                          session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
-    avatar_filepath = get_image_filepath(user_id)
-    return FileResponse(avatar_filepath)
-
 
 @router.get("/me/avatar")
 async def get_avatar(user: User = Depends(current_active_user)):
@@ -44,5 +29,22 @@ async def post_avatar(avatar: UploadFile,
 @router.delete("/me/avatar")
 async def delete_avatar(user: User = Depends(current_active_user),
                         session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
-    await crud.delete_avatar(user, session)
+    await crud.delete_user_avatar(user, session)
 
+
+@router.get("/{user_id}")
+async def get_user_profile(user_id: int,
+                           user: User = Depends(current_active_user), 
+                           session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+    user_data = await crud.get_profile_data_by_id(user_id, session)
+    return user_data
+
+
+@router.get("/{user_id}/avatar")
+async def get_user_avatar(user_id: int, 
+                          user: User = Depends(current_active_user),
+                          session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+    if not await crud.check_if_user_exists(user_id, session):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id} was not found!")
+    avatar_filepath = get_image_filepath(user_id)
+    return FileResponse(avatar_filepath)

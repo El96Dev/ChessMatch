@@ -54,3 +54,7 @@ async def delete_user_avatar(user: User, session: AsyncSession):
     user.avatar_filename = "default"
     await session.commit()
     
+
+async def check_if_user_exists(user_id: int, session: AsyncSession):
+    stmt = select(User).where(User.id == user_id).exists()
+    return await session.scalar(select(stmt))
