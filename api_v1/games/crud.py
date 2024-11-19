@@ -40,6 +40,15 @@ async def create_game(white_player_id: int, black_player_id: int, started_at: da
     return game
 
 
+async def delete_game(game_id: int, session: AsyncSession):
+    stmt = select(Game).where(Game.id == game_id)
+    result = await session.execute(stmt)
+    game = result.scalars().one_or_none()
+    if game:
+        await session.delete(game)
+        await session.commit()
+
+
 async def add_move(game_id: int, move_str: str, sequence_number: int, session: AsyncSession):
     game_exists = await check_if_game_exists(game_id, session)
     if game_exists:

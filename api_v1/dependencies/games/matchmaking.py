@@ -3,7 +3,7 @@ from collections import deque
 from datetime import datetime
 from threading import RLock
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, WebSocketDisconnect
+from fastapi import Depends, WebSocketDisconnect, WebSocket
 
 from core.config import settings
 from api_v1.games import crud
@@ -51,6 +51,15 @@ class MatchmakingSystem:
         for player in players_to_remove:
             self.deque.remove(player)
                 
+
+    async def remove_websocket_if_needed(self, websocket: WebSocket) -> bool:
+        with self.lock:
+            for socket in self.deque:
+                if socket == websocket:
+                    self.deque.remove(socket)
+                    return True
+            return False
+
 
 
 matchmaking_system = MatchmakingSystem()

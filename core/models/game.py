@@ -18,7 +18,7 @@ class GameResult(Enum):
 class Game(Base):
     __tablename__ = "games"
 
-    moves: Mapped[list["Move"]] = relationship("Move", back_populates="game")
+    moves: Mapped[list["Move"]] = relationship("Move", back_populates="game", cascade="all, delete-orphan")
     white_player_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     white_player: Mapped["User"] = relationship("User", foreign_keys=[white_player_id], back_populates="white_games")
     black_player_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)

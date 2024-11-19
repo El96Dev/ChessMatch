@@ -71,4 +71,11 @@ class GameManager:
             del self.games[game_id]
 
 
+    async def on_websocket_disconnected(self, websocket: WebSocket, session: AsyncSession):
+        with self.lock:
+            for game in self.games:
+                if game.contains_websocket(websocket):
+                    game.on_websocket_disconnected(websocket, session)
+
+
 game_manager = GameManager()

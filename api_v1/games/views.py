@@ -35,7 +35,6 @@ async def websocket_function(websocket: WebSocket,
         if "preferences" not in data:
             raise KeyError("'preferences' field is required")
         if data["preferences"] not in ['WHITE', 'BLACK', 'ANY']:
-            print("Incorrect preferences value")
             raise KeyError("'preferences' must be one of the following values: 'WHITE', 'BLACK', 'ANY'")
         if data["action"] == "start_waiting":
             player = Player(websocket, user, data["preferences"])
@@ -43,19 +42,16 @@ async def websocket_function(websocket: WebSocket,
 
         while True:
             data = await websocket.receive_json()
-            print(data, "user is ", user.username, user.email)
             await game_manager.on_json_message(user.username, websocket, data, session)
 
 
     except json.JSONDecodeError as e:
-        print("print json error", e.msg)
         await websocket.send_json({"action": "json_error", "detail": e.msg})
     except KeyError as k:   
-        print(k)
         await websocket.send_json({"action": "message_error", "detail": str(k)})
         await websocket.close()
     except WebSocketDisconnect:
-        print(websocket.client_state, "client state disconnect")
-
+        if not await matchmaking_system.remove_websocket_if_needed(websocket):
+            await game_manager.on_websocket_disconnected(websocket, session)
 
 

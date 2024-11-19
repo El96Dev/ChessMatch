@@ -27,7 +27,6 @@ class Player():
         self.preferences = Preferences[preferences]
 
 
-
     async def get_json_message(self) -> json:
         return await self.websocket.receive_json()
 

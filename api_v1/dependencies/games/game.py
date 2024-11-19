@@ -36,6 +36,19 @@ class Game:
         return self.white_player.user.username == username or self.black_player.user.username == username
 
 
+    async def contains_websocket(self, websocket: WebSocket) -> bool:
+        return white_player.websocket == websocket or black_player.websocket == websocket
+
+    
+    async def on_websocket_disconnected(self, websocket: WebSocket, session: AsyncSession):
+        if white_player.websocket == websocket:
+            await black_player.send_json_message({"action": "game_ended", "detail": "Your opponent was disconnected"})
+        elif black_player.websocket == websocket:
+            await white_player.send_json_message({"action": "game_ended", "detail": "Your opponent was disconnected"})
+        await crud.delete_game(self.game_id, session)
+        
+
+
     async def send_game_start_messages(self):
         try:
             message_to_white = {"action": "start_game", 
